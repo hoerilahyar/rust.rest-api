@@ -1,27 +1,52 @@
-mod handlers;
-mod models;
-mod state;
+use axum::{Json, Router, routing::get};
 
-use axum::{
-    routing::{delete, get, post},
-    Router,
-};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize)]
+struct Hello {
+    message: String,
+}
+
+async fn hello() -> Json<Hello> {
+    Json(Hello {
+        message: "Hello, World!".to_string(),
+    })
+}
+
+#[derive(Deserialize)]
+struct LoginRequest {
+    username: String,
+    password: String,
+}
+
+#[derive(Serialize)]
+struct LoginResponse {
+    message: String,
+    username: String,
+    password: String,
+    success: bool,
+}
+
+async fn login(Json(payload): Json<LoginRequest>) -> Json<LoginResponse> {
+    Json(LoginResponse {
+        message: "Login berhasil".to_string(),
+        username: payload.username,
+        password: payload.password,
+        success: true,
+    })
+}
 
 #[tokio::main]
 async fn main() {
-    let state = state::new_state();
+    println!("Server is starting ...");
 
     let app = Router::new()
-        .route("/users", get(handlers::list_users))
-        .route("/users", post(handlers::create_user))
-        .route("/users/:id", get(handlers::get_user))
-        .route("/users/:id", delete(handlers::delete_user))
-        .with_state(state);
+        .route("/", get(hello))
+        .route("/login", axum::routing::post(login));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
 
-    println!("Server running at http://localhost:3000");
+    println!("Server is running on http://0.0.0.0:8080");
+
     axum::serve(listener, app).await.unwrap();
 }
